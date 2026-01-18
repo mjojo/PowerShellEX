@@ -3,7 +3,11 @@
   "displayName": "PowerShell EX - Advanced PowerShell Support",
   "description": "Next-generation PowerShell integration for Antigravity IDE",
   "version": "1.1.0",
-  "publisher": "powershell-ex",
+  "author": {
+    "name": "(mjojo)",
+    "email": "vitaly.golik@gmail.com"
+  },
+  "publisher": "mjojo",
   "repository": {
     "type": "git",
     "url": "https://github.com/powershell-ex/powershell-ex"
