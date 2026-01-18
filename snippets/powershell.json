@@ -1,0 +1,162 @@
+{
+    "Function": {
+        "prefix": "func",
+        "body": [
+            "function ${1:FunctionName} {",
+            "    [CmdletBinding()]",
+            "    param (",
+            "        [Parameter(Mandatory)]",
+            "        [${2:string}]$$${3:ParameterName}",
+            "    )",
+            "    ",
+            "    begin {",
+            "        $4",
+            "    }",
+            "    ",
+            "    process {",
+            "        $0",
+            "    }",
+            "    ",
+            "    end {",
+            "    }",
+            "}"
+        ],
+        "description": "Advanced function with CmdletBinding"
+    },
+    "Try-Catch": {
+        "prefix": "try",
+        "body": [
+            "try {",
+            "    $1",
+            "}",
+            "catch {",
+            "    Write-Error \"Error: $$_\"",
+            "    $0",
+            "}"
+        ],
+        "description": "Try-Catch block"
+    },
+    "ForEach-Object": {
+        "prefix": "foreach",
+        "body": [
+            "${1:\\$items} | ForEach-Object {",
+            "    $0",
+            "}"
+        ],
+        "description": "ForEach-Object pipeline"
+    },
+    "If-Else": {
+        "prefix": "if",
+        "body": [
+            "if (${1:condition}) {",
+            "    $2",
+            "}",
+            "else {",
+            "    $0",
+            "}"
+        ],
+        "description": "If-Else statement"
+    },
+    "Switch": {
+        "prefix": "switch",
+        "body": [
+            "switch (${1:\\$variable}) {",
+            "    '${2:value1}' { $3 }",
+            "    '${4:value2}' { $5 }",
+            "    default { $0 }",
+            "}"
+        ],
+        "description": "Switch statement"
+    },
+    "Parameter": {
+        "prefix": "param",
+        "body": [
+            "param (",
+            "    [Parameter(Mandatory=${1:$$true})]",
+            "    [${2:string}]$$${3:ParameterName}$0",
+            ")"
+        ],
+        "description": "Parameter block"
+    },
+    "Comment-Based Help": {
+        "prefix": "help",
+        "body": [
+            "<#",
+            ".SYNOPSIS",
+            "    ${1:Brief description}",
+            "",
+            ".DESCRIPTION",
+            "    ${2:Detailed description}",
+            "",
+            ".PARAMETER ${3:ParameterName}",
+            "    ${4:Parameter description}",
+            "",
+            ".EXAMPLE",
+            "    ${5:Example usage}",
+            "",
+            ".NOTES",
+            "    Author: ${6:Author}",
+            "    Date: ${7:Date}",
+            "#>",
+            "$0"
+        ],
+        "description": "Comment-based help block"
+    },
+    "Class": {
+        "prefix": "class",
+        "body": [
+            "class ${1:ClassName} {",
+            "    # Properties",
+            "    [${2:string}]$$${3:PropertyName}",
+            "    ",
+            "    # Constructor",
+            "    ${1:ClassName}() {",
+            "        $0",
+            "    }",
+            "    ",
+            "    # Methods",
+            "    [void] ${4:MethodName}() {",
+            "        ",
+            "    }",
+            "}"
+        ],
+        "description": "PowerShell class definition"
+    },
+    "Region": {
+        "prefix": "region",
+        "body": [
+            "#region ${1:RegionName}",
+            "$0",
+            "#endregion"
+        ],
+        "description": "Collapsible region"
+    },
+    "Splatting": {
+        "prefix": "splat",
+        "body": [
+            "$$${1:params} = @{",
+            "    ${2:Key} = ${3:Value}",
+            "    $0",
+            "}",
+            "",
+            "${4:Command} @${1:params}"
+        ],
+        "description": "Parameter splatting"
+    },
+    "Pester Test": {
+        "prefix": "describe",
+        "body": [
+            "Describe '${1:TestName}' {",
+            "    It '${2:should do something}' {",
+            "        $0",
+            "    }",
+            "}"
+        ],
+        "description": "Pester Describe block"
+    },
+    "Write-Verbose": {
+        "prefix": "wv",
+        "body": "Write-Verbose \"${1:message}\" -Verbose",
+        "description": "Write-Verbose command"
+    }
+}

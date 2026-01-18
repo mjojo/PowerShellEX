@@ -1,0 +1,35 @@
+# Source files (already compiled to dist/)
+src/**
+*.ts
+!dist/**
+
+# Development files
+.git/**
+.gitignore
+.github/**
+
+# Config files
+tsconfig.json
+.eslintrc*
+.prettierrc*
+
+# Test files
+test/**
+**/*.test.ts
+**/*.spec.ts
+
+# Build artifacts
+node_modules/**
+*.vsix
+
+# Documentation (keep README.md)
+CHANGELOG.md
+docs/**
+
+# IDE settings
+.vscode/**
+.idea/**
+
+# OS files
+.DS_Store
+Thumbs.db

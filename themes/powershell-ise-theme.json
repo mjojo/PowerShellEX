@@ -1,0 +1,78 @@
+{
+    "name": "PowerShell ISE",
+    "type": "light",
+    "colors": {
+        "editor.background": "#FFFFFF",
+        "editor.foreground": "#000000",
+        "editorCursor.foreground": "#000000",
+        "editor.lineHighlightBackground": "#E8F2FE",
+        "editorLineNumber.foreground": "#2B91AF",
+        "editor.selectionBackground": "#ADD6FF",
+        "terminal.background": "#012456",
+        "terminal.foreground": "#EEEDF0",
+        "activityBar.background": "#EEEDF0",
+        "activityBar.foreground": "#000000",
+        "sideBar.background": "#F5F5F5",
+        "statusBar.background": "#007ACC"
+    },
+    "tokenColors": [
+        {
+            "scope": [
+                "comment"
+            ],
+            "settings": {
+                "foreground": "#006400",
+                "fontStyle": "italic"
+            }
+        },
+        {
+            "scope": [
+                "string"
+            ],
+            "settings": {
+                "foreground": "#8B0000"
+            }
+        },
+        {
+            "scope": [
+                "variable"
+            ],
+            "settings": {
+                "foreground": "#FF4500"
+            }
+        },
+        {
+            "scope": [
+                "keyword"
+            ],
+            "settings": {
+                "foreground": "#00008B",
+                "fontStyle": "bold"
+            }
+        },
+        {
+            "scope": [
+                "support.function"
+            ],
+            "settings": {
+                "foreground": "#0000FF"
+            }
+        },
+        {
+            "scope": [
+                "constant.numeric"
+            ],
+            "settings": {
+                "foreground": "#800080"
+            }
+        },
+        {
+            "scope": [
+                "keyword.operator"
+            ],
+            "settings": {
+                "foreground": "#808080"
+            }
+        }
+    ]
+}

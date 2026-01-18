@@ -1,0 +1,154 @@
+{
+  "name": "powershell-ex",
+  "displayName": "PowerShell EX - Advanced PowerShell Support",
+  "description": "Next-generation PowerShell integration for Antigravity IDE",
+  "version": "1.1.0",
+  "publisher": "powershell-ex",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/powershell-ex/powershell-ex"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Debuggers",
+    "Snippets"
+  ],
+  "keywords": [
+    "powershell",
+    "pwsh",
+    "ps1",
+    "psm1",
+    "psd1",
+    "scripting",
+    "automation"
+  ],
+  "activationEvents": [
+    "onLanguage:powershell"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "powershell",
+        "aliases": [
+          "PowerShell",
+          "powershell",
+          "ps",
+          "ps1"
+        ],
+        "extensions": [
+          ".ps1",
+          ".psm1",
+          ".psd1",
+          ".pssc",
+          ".psrc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "powershell",
+        "scopeName": "source.powershell",
+        "path": "./syntaxes/powershell.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "powershell-ex.runSelection",
+        "title": "Run Selection",
+        "category": "PowerShell"
+      },
+      {
+        "command": "powershell-ex.runFile",
+        "title": "Run File",
+        "category": "PowerShell"
+      },
+      {
+        "command": "powershell-ex.showHelp",
+        "title": "Show Help for Symbol",
+        "category": "PowerShell"
+      },
+      {
+        "command": "powershell-ex.analyzeScript",
+        "title": "Analyze Script",
+        "category": "PowerShell"
+      },
+      {
+        "command": "powershell-ex.toggleISEMode",
+        "title": "Toggle ISE Mode",
+        "category": "PowerShell"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "powershell-ex.runSelection",
+        "key": "f8",
+        "when": "editorTextFocus && editorLangId == powershell"
+      },
+      {
+        "command": "powershell-ex.showHelp",
+        "key": "ctrl+f1",
+        "when": "editorTextFocus && editorLangId == powershell"
+      }
+    ],
+    "configuration": {
+      "title": "PowerShell EX",
+      "properties": {
+        "powershell-ex.powerShellPath": {
+          "type": "string",
+          "default": "pwsh",
+          "description": "Path to PowerShell executable"
+        },
+        "powershell-ex.enableScriptAnalysis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable PSScriptAnalyzer integration"
+        },
+        "powershell-ex.analysisOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run script analysis on save"
+        }
+      }
+    },
+    "themes": [
+      {
+        "label": "PowerShell ISE",
+        "uiTheme": "vs",
+        "path": "./themes/powershell-ise-theme.json"
+      },
+      {
+        "label": "PowerShell Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/powershell-dark-theme.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "powershell",
+        "path": "./snippets/powershell.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.10.0",
+    "@vscode/vsce": "^2.22.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

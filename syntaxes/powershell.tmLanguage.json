@@ -1,0 +1,129 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "PowerShell",
+    "scopeName": "source.powershell",
+    "patterns": [
+        {
+            "include": "#comment"
+        },
+        {
+            "include": "#string"
+        },
+        {
+            "include": "#variable"
+        },
+        {
+            "include": "#command"
+        },
+        {
+            "include": "#keyword"
+        },
+        {
+            "include": "#operator"
+        },
+        {
+            "include": "#number"
+        }
+    ],
+    "repository": {
+        "comment": {
+            "patterns": [
+                {
+                    "name": "comment.block.powershell",
+                    "begin": "<#",
+                    "end": "#>"
+                },
+                {
+                    "name": "comment.line.powershell",
+                    "match": "#.*$"
+                }
+            ]
+        },
+        "string": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.powershell",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "variable.other.readwrite.powershell",
+                            "match": "\\$[\\w:]+"
+                        },
+                        {
+                            "name": "constant.character.escape.powershell",
+                            "match": "`."
+                        }
+                    ]
+                },
+                {
+                    "name": "string.quoted.single.powershell",
+                    "begin": "'",
+                    "end": "'"
+                },
+                {
+                    "name": "string.quoted.double.heredoc.powershell",
+                    "begin": "@\"",
+                    "end": "\"@"
+                },
+                {
+                    "name": "string.quoted.single.heredoc.powershell",
+                    "begin": "@'",
+                    "end": "'@"
+                }
+            ]
+        },
+        "variable": {
+            "patterns": [
+                {
+                    "name": "variable.language.powershell",
+                    "match": "\\$(?:true|false|null|_|PSVersionTable|PSScriptRoot|PSCommandPath|MyInvocation|Error|Host|PID|PWD|HOME)\\b"
+                },
+                {
+                    "name": "variable.other.readwrite.powershell",
+                    "match": "\\$(?:global:|script:|local:|private:|using:|env:|variable:)?[\\w]+"
+                }
+            ]
+        },
+        "command": {
+            "patterns": [
+                {
+                    "name": "support.function.powershell",
+                    "match": "\\b(?:Get|Set|New|Remove|Add|Clear|Write|Read|Out|Start|Stop|Invoke|Test|Enable|Disable|Export|Import|ConvertTo|ConvertFrom|Format|Select|Where|ForEach|Sort|Group|Measure|Compare|Join|Split|Copy|Move|Rename|Update|Wait|Show|Hide|Open|Close|Enter|Exit|Push|Pop|Register|Unregister|Send|Receive|Connect|Disconnect|Mount|Dismount|Debug|Trace|Assert|Confirm|Suspend|Resume|Restart|Reset|Install|Uninstall|Publish|Unpublish|Find|Save|Sync|Lock|Unlock|Protect|Unprotect|Grant|Revoke|Block|Unblock|Limit|Request|Submit|Undo|Redo|Backup|Restore|Checkpoint|Complete|Compress|Expand|Merge|Repair|Resolve|Search|Skip|Step|Switch|Watch)-[A-Za-z][A-Za-z0-9]*\\b"
+                }
+            ]
+        },
+        "keyword": {
+            "patterns": [
+                {
+                    "name": "keyword.control.powershell",
+                    "match": "\\b(?:if|else|elseif|switch|while|for|foreach|do|until|break|continue|return|exit|throw|try|catch|finally|trap|begin|process|end|function|filter|param|class|enum|using|namespace|in|default)\\b"
+                },
+                {
+                    "name": "keyword.operator.logical.powershell",
+                    "match": "-(?:and|or|xor|not|band|bor|bxor|bnot|eq|ne|gt|ge|lt|le|like|notlike|match|notmatch|contains|notcontains|in|notin|replace|split|join|is|isnot|as|f|shl|shr)\\b"
+                }
+            ]
+        },
+        "operator": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.assignment.powershell",
+                    "match": "=|\\+=|-=|\\*=|/=|%=|\\|\\||&&"
+                },
+                {
+                    "name": "keyword.operator.other.powershell",
+                    "match": "\\||>|>>|2>&1|\\.\\.|\\.\\/"
+                }
+            ]
+        },
+        "number": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.powershell",
+                    "match": "\\b(?:0x[0-9a-fA-F]+|\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?(?:kb|mb|gb|tb|pb)?)\\b"
+                }
+            ]
+        }
+    }
+}

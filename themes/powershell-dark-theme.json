@@ -1,0 +1,94 @@
+{
+    "name": "PowerShell Dark",
+    "type": "dark",
+    "colors": {
+        "editor.background": "#012456",
+        "editor.foreground": "#EEEDF0",
+        "editorCursor.foreground": "#FFFF00",
+        "editor.lineHighlightBackground": "#1E3A5F",
+        "editorLineNumber.foreground": "#6A9955",
+        "editor.selectionBackground": "#264F78",
+        "terminal.background": "#012456",
+        "terminal.foreground": "#EEEDF0",
+        "activityBar.background": "#001933",
+        "activityBar.foreground": "#FFFFFF",
+        "sideBar.background": "#001933",
+        "statusBar.background": "#68217A"
+    },
+    "tokenColors": [
+        {
+            "scope": [
+                "comment"
+            ],
+            "settings": {
+                "foreground": "#6A9955",
+                "fontStyle": "italic"
+            }
+        },
+        {
+            "scope": [
+                "string"
+            ],
+            "settings": {
+                "foreground": "#CE9178"
+            }
+        },
+        {
+            "scope": [
+                "variable"
+            ],
+            "settings": {
+                "foreground": "#9CDCFE"
+            }
+        },
+        {
+            "scope": [
+                "variable.language"
+            ],
+            "settings": {
+                "foreground": "#569CD6"
+            }
+        },
+        {
+            "scope": [
+                "keyword"
+            ],
+            "settings": {
+                "foreground": "#C586C0"
+            }
+        },
+        {
+            "scope": [
+                "keyword.control"
+            ],
+            "settings": {
+                "foreground": "#C586C0",
+                "fontStyle": "bold"
+            }
+        },
+        {
+            "scope": [
+                "support.function"
+            ],
+            "settings": {
+                "foreground": "#DCDCAA"
+            }
+        },
+        {
+            "scope": [
+                "constant.numeric"
+            ],
+            "settings": {
+                "foreground": "#B5CEA8"
+            }
+        },
+        {
+            "scope": [
+                "keyword.operator"
+            ],
+            "settings": {
+                "foreground": "#D4D4D4"
+            }
+        }
+    ]
+}
