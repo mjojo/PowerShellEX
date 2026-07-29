@@ -9,6 +9,7 @@ import { platform } from 'os';
 import { writeFileSync, unlinkSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { stripAnsi } from './tokenOptimizer';
 
 export interface PowerShellResult {
     success: boolean;
@@ -110,8 +111,8 @@ export async function runPowerShell(
             clearTimeout(timeoutId);
             resolve({
                 success: exitCode === 0,
-                output: stdout.trim(),
-                error: stderr.trim(),
+                output: stripAnsi(stdout).trim(),
+                error:  stripAnsi(stderr).trim(),
                 exitCode,
             });
         });
@@ -133,13 +134,16 @@ export async function runPowerShell(
  * Execute PowerShell via a temporary script file to avoid -Command length limits
  * and pipeline conflicts when the code itself contains pipelines.
  *
- * The result must be JSON-serialisable; wrap the code so the last expression
- * is converted with ConvertTo-Json.
+ * @param code             PowerShell code whose last expression is JSON-serialised
+ * @param workingDirectory Optional working directory
+ * @param timeout          Timeout in milliseconds
+ * @param depth            ConvertTo-Json depth (default 3 — keeps output compact)
  */
 export async function runPowerShellJson<T>(
     code: string,
     workingDirectory?: string,
-    timeout: number = 30_000
+    timeout: number = 30_000,
+    depth: number = 3
 ): Promise<T | null> {
     // Write code to a temp file so we avoid -Command length limits
     // and double-pipe issues when the callee code already has pipelines.
@@ -151,7 +155,7 @@ $ErrorActionPreference = 'Stop'
 $__psex_result = & {
 ${code}
 }
-$__psex_result | ConvertTo-Json -Depth 10 -Compress
+$__psex_result | ConvertTo-Json -Depth ${depth} -Compress
 `;
 
     try {
@@ -180,7 +184,7 @@ $__psex_result | ConvertTo-Json -Depth 10 -Compress
             child.on('close', (code) => {
                 if (timedOut) { return; }
                 clearTimeout(timeoutId);
-                resolve({ success: code === 0, output: stdout.trim(), error: stderr.trim(), exitCode: code });
+                resolve({ success: code === 0, output: stripAnsi(stdout).trim(), error: stripAnsi(stderr).trim(), exitCode: code });
             });
 
             child.on('error', (err) => {

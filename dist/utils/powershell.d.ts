@@ -28,7 +28,9 @@ export declare function runPowerShell(code: string, workingDirectory?: string, t
  * Execute PowerShell via a temporary script file to avoid -Command length limits
  * and pipeline conflicts when the code itself contains pipelines.
  *
- * The result must be JSON-serialisable; wrap the code so the last expression
- * is converted with ConvertTo-Json.
+ * @param code             PowerShell code whose last expression is JSON-serialised
+ * @param workingDirectory Optional working directory
+ * @param timeout          Timeout in milliseconds
+ * @param depth            ConvertTo-Json depth (default 3 — keeps output compact)
  */
-export declare function runPowerShellJson<T>(code: string, workingDirectory?: string, timeout?: number): Promise<T | null>;
+export declare function runPowerShellJson<T>(code: string, workingDirectory?: string, timeout?: number, depth?: number): Promise<T | null>;

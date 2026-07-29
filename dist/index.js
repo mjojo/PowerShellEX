@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 "use strict";
 /**
- * PowerShell MCP Server for Antigravity
- * Enables AI agent to execute PowerShell commands automatically
+ * PowerShell MCP Server for Antigravity — v1.2.0
+ * Token-optimised: compact JSON, ANSI-free output, truncated responses.
  *
  * @author (mjojo)
  * @license MIT
@@ -19,125 +19,133 @@ const getHelp_1 = require("./tools/getHelp");
 const invokeCmdlet_1 = require("./tools/invokeCmdlet");
 const modules_1 = require("./resources/modules");
 const environment_1 = require("./resources/environment");
-const server = new index_js_1.Server({ name: 'powershell-mcp-server', version: '1.1.1' }, { capabilities: { tools: {}, resources: {} } });
+const tokenOptimizer_1 = require("./utils/tokenOptimizer");
+const server = new index_js_1.Server({ name: 'powershell-mcp-server', version: '1.2.0' }, { capabilities: { tools: {}, resources: {} } });
 // ─────────────────────────────────────────────────────────────────────────────
-// TOOLS — List
+// TOOLS — List  (short descriptions = fewer input tokens per call)
 // ─────────────────────────────────────────────────────────────────────────────
 server.setRequestHandler(types_js_1.ListToolsRequestSchema, async () => ({
     tools: [
         {
             name: 'execute_powershell',
-            description: 'Execute arbitrary PowerShell code and return stdout/stderr/exitCode',
+            description: 'Run PowerShell code. Returns stdout/stderr/exitCode. ANSI stripped. Output capped at maxOutput chars.',
             inputSchema: {
                 type: 'object',
                 properties: {
-                    code: { type: 'string', description: 'PowerShell code to execute' },
-                    workingDirectory: { type: 'string', description: 'Working directory (optional)' },
-                    timeout: { type: 'number', description: 'Timeout in milliseconds (default 30000)' },
+                    code: { type: 'string', description: 'PS code to run' },
+                    workingDirectory: { type: 'string', description: 'Working dir (optional)' },
+                    timeout: { type: 'number', description: 'Timeout ms (default 30000)' },
+                    maxOutput: { type: 'number', description: `Max output chars (default ${tokenOptimizer_1.DEFAULT_MAX_OUTPUT}). Increase for large outputs.` },
                 },
                 required: ['code'],
             },
         },
         {
             name: 'analyze_script',
-            description: 'Analyze PowerShell code with PSScriptAnalyzer and return diagnostics',
+            description: 'Lint PowerShell code with PSScriptAnalyzer. Returns diagnostics array.',
             inputSchema: {
                 type: 'object',
                 properties: {
-                    code: { type: 'string', description: 'PowerShell code to analyze' },
-                    minSeverity: { type: 'string', description: 'Minimum severity: Error | Warning | Information', enum: ['Error', 'Warning', 'Information'] },
+                    code: { type: 'string', description: 'PS code to analyze' },
+                    minSeverity: { type: 'string', description: 'Error|Warning|Information', enum: ['Error', 'Warning', 'Information'] },
                 },
                 required: ['code'],
             },
         },
         {
             name: 'get_completions',
-            description: 'Get IntelliSense completions at a cursor position using native TabExpansion2',
+            description: 'TabExpansion2 completions at cursor. Cached 5 s. Returns up to maxResults items.',
             inputSchema: {
                 type: 'object',
                 properties: {
-                    code: { type: 'string', description: 'PowerShell code context' },
-                    cursorPosition: { type: 'number', description: 'Cursor offset (character index)' },
+                    code: { type: 'string', description: 'PS code context' },
+                    cursorPosition: { type: 'number', description: 'Cursor char offset' },
+                    maxResults: { type: 'number', description: 'Max completions to return (default 30)' },
                 },
                 required: ['code', 'cursorPosition'],
             },
         },
         {
             name: 'get_help',
-            description: 'Get PowerShell help documentation for a cmdlet or topic',
+            description: 'Get-Help for a cmdlet or topic.',
             inputSchema: {
                 type: 'object',
                 properties: {
                     topic: { type: 'string', description: 'Cmdlet or topic name' },
-                    examples: { type: 'boolean', description: 'Include usage examples' },
-                    detailed: { type: 'boolean', description: 'Show detailed help' },
+                    examples: { type: 'boolean', description: 'Include examples' },
+                    detailed: { type: 'boolean', description: 'Detailed help' },
                 },
                 required: ['topic'],
             },
         },
         {
             name: 'invoke_cmdlet',
-            description: 'Execute a single PowerShell cmdlet with structured named parameters and return JSON result',
+            description: 'Run a cmdlet with typed params. Token-safe: depth=2, first=50, smart field selection. Use selectProperties to limit output further.',
             inputSchema: {
                 type: 'object',
                 properties: {
-                    cmdlet: {
-                        type: 'string',
-                        description: 'Cmdlet name (e.g. "Get-Process", "Set-Content")',
+                    cmdlet: { type: 'string', description: 'Cmdlet name (e.g. Get-Process)' },
+                    parameters: { type: 'object', description: 'Parameter name→value map', additionalProperties: true },
+                    workingDirectory: { type: 'string', description: 'Working dir (optional)' },
+                    selectProperties: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Return only these properties. Omit for smart defaults.',
                     },
-                    parameters: {
-                        type: 'object',
-                        description: 'Key/value map of parameter names to values',
-                        additionalProperties: true,
-                    },
-                    workingDirectory: { type: 'string', description: 'Working directory (optional)' },
+                    depth: { type: 'number', description: 'JSON depth (default 2). Higher = more tokens.' },
+                    first: { type: 'number', description: 'Limit to first N results (default 50).' },
                 },
                 required: ['cmdlet'],
             },
         },
         {
             name: 'list_modules',
-            description: 'List installed PowerShell modules, optionally filtered by name pattern',
+            description: 'List PS modules (name, version, description). Path excluded by default.',
             inputSchema: {
                 type: 'object',
                 properties: {
-                    filter: { type: 'string', description: 'Name filter pattern (wildcard)' },
-                    listAvailable: { type: 'boolean', description: 'Include modules not yet imported' },
+                    filter: { type: 'string', description: 'Wildcard name filter' },
+                    listAvailable: { type: 'boolean', description: 'Include unimported modules (default true)' },
+                    includePath: { type: 'boolean', description: 'Include file path (more tokens)' },
                 },
             },
         },
     ],
 }));
 // ─────────────────────────────────────────────────────────────────────────────
-// TOOLS — Call
+// TOOLS — Call  (all responses use compactJson)
 // ─────────────────────────────────────────────────────────────────────────────
 server.setRequestHandler(types_js_1.CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
     try {
         switch (name) {
             case 'execute_powershell': {
-                const result = await (0, executeScript_1.executePowerShell)(args?.code, args?.workingDirectory, args?.timeout);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                const result = await (0, executeScript_1.executePowerShell)(args?.code, args?.workingDirectory, args?.timeout, args?.maxOutput);
+                return { content: [{ type: 'text', text: (0, tokenOptimizer_1.compactJson)(result) }] };
             }
             case 'analyze_script': {
                 const result = await (0, analyzeScript_1.analyzeScript)(args?.code, args?.minSeverity);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                return { content: [{ type: 'text', text: (0, tokenOptimizer_1.compactJson)(result) }] };
             }
             case 'get_completions': {
-                const result = await (0, getCompletion_1.getCompletions)(args?.code, args?.cursorPosition);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                const result = await (0, getCompletion_1.getCompletions)(args?.code, args?.cursorPosition, args?.maxResults);
+                return { content: [{ type: 'text', text: (0, tokenOptimizer_1.compactJson)(result) }] };
             }
             case 'get_help': {
+                // Help is plain text — truncate to 3000 chars (enough for synopsis + syntax)
                 const result = await (0, getHelp_1.getHelp)(args?.topic, args?.examples ?? false, args?.detailed ?? false);
-                return { content: [{ type: 'text', text: result }] };
+                const truncated = result.length > 3000
+                    ? result.slice(0, 3000) + '\n[...truncated. Use detailed=true or examples=true for specific sections]'
+                    : result;
+                return { content: [{ type: 'text', text: truncated }] };
             }
             case 'invoke_cmdlet': {
-                const result = await (0, invokeCmdlet_1.invokeCmdlet)(args?.cmdlet, args?.parameters ?? {}, args?.workingDirectory);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                const result = await (0, invokeCmdlet_1.invokeCmdlet)(args?.cmdlet, args?.parameters ?? {}, args?.workingDirectory, args?.selectProperties, args?.depth, args?.first);
+                return { content: [{ type: 'text', text: (0, tokenOptimizer_1.compactJson)(result) }] };
             }
             case 'list_modules': {
-                const result = await (0, modules_1.listModules)(args?.filter, args?.listAvailable ?? true);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                const result = await (0, modules_1.listModules)(args?.filter, args?.listAvailable ?? true, args?.includePath ?? false);
+                return { content: [{ type: 'text', text: (0, tokenOptimizer_1.compactJson)(result) }] };
             }
             default:
                 throw new Error(`Unknown tool: ${name}`);
@@ -145,54 +153,29 @@ server.setRequestHandler(types_js_1.CallToolRequestSchema, async (request) => {
     }
     catch (error) {
         return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }],
+            content: [{ type: 'text', text: (0, tokenOptimizer_1.compactJson)({ error: error.message }) }],
             isError: true,
         };
     }
 });
 // ─────────────────────────────────────────────────────────────────────────────
-// RESOURCES — List
+// RESOURCES
 // ─────────────────────────────────────────────────────────────────────────────
 server.setRequestHandler(types_js_1.ListResourcesRequestSchema, async () => ({
     resources: [
-        {
-            uri: 'powershell://environment',
-            name: 'PowerShell Environment',
-            mimeType: 'application/json',
-            description: 'Current PowerShell version, edition, OS, execution policy, etc.',
-        },
-        {
-            uri: 'powershell://modules',
-            name: 'Installed Modules',
-            mimeType: 'application/json',
-            description: 'List of all available PowerShell modules with versions',
-        },
+        { uri: 'powershell://environment', name: 'PS Environment', mimeType: 'application/json' },
+        { uri: 'powershell://modules', name: 'Installed Modules', mimeType: 'application/json' },
     ],
 }));
-// ─────────────────────────────────────────────────────────────────────────────
-// RESOURCES — Read
-// ─────────────────────────────────────────────────────────────────────────────
 server.setRequestHandler(types_js_1.ReadResourceRequestSchema, async (request) => {
     const uri = request.params.uri;
     if (uri === 'powershell://environment') {
         const info = await (0, environment_1.getEnvironmentInfo)();
-        return {
-            contents: [{
-                    uri,
-                    mimeType: 'application/json',
-                    text: JSON.stringify(info, null, 2),
-                }],
-        };
+        return { contents: [{ uri, mimeType: 'application/json', text: (0, tokenOptimizer_1.compactJson)(info) }] };
     }
     if (uri === 'powershell://modules') {
-        const modules = await (0, modules_1.listModules)(undefined, true);
-        return {
-            contents: [{
-                    uri,
-                    mimeType: 'application/json',
-                    text: JSON.stringify(modules, null, 2),
-                }],
-        };
+        const modules = await (0, modules_1.listModules)(undefined, true, false);
+        return { contents: [{ uri, mimeType: 'application/json', text: (0, tokenOptimizer_1.compactJson)(modules) }] };
     }
     throw new Error(`Unknown resource: ${uri}`);
 });
@@ -202,7 +185,7 @@ server.setRequestHandler(types_js_1.ReadResourceRequestSchema, async (request) =
 async function main() {
     const transport = new stdio_js_1.StdioServerTransport();
     await server.connect(transport);
-    console.error('PowerShell MCP Server v1.1.1 running');
+    console.error('PowerShell MCP Server v1.2.0 — token-optimised');
 }
 main().catch(console.error);
 //# sourceMappingURL=index.js.map

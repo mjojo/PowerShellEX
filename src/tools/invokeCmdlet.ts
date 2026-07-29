@@ -2,32 +2,24 @@
  * Invoke-Cmdlet Tool
  *
  * Executes a single PowerShell cmdlet with structured named parameters.
- * Unlike execute_powershell (which runs arbitrary code), this tool accepts
- * a cmdlet name + parameter map, builds a safe invocation, and returns
- * structured JSON output — ideal for AI agents that need predictable results.
+ * Token-optimised: depth=2, first=50, selectProperties to pick only needed fields.
  */
 
 import { runPowerShellJson } from '../utils/powershell';
 
-export interface CmdletParameter {
-    /** Parameter name (without the leading dash) */
-    name: string;
-    /** Parameter value — string, number, boolean, or array */
-    value: string | number | boolean | string[];
-}
-
 export interface CmdletResult {
     success: boolean;
-    /** Structured JSON output from the cmdlet */
     result: unknown;
-    /** Raw string output when ConvertTo-Json fails */
-    rawOutput?: string;
+    count?: number;
     error?: string;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Parameter builder
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Build a safe PowerShell parameter string from a key/value map.
- * Escapes string values to prevent injection.
  */
 function buildParamString(params: Record<string, unknown>): string {
     return Object.entries(params)
@@ -39,48 +31,116 @@ function buildParamString(params: Record<string, unknown>): string {
                 const escaped = value.map(v => `'${String(v).replace(/'/g, "''")}'`).join(',');
                 return `-${key} @(${escaped})`;
             }
-            // String — single-quote escaped
             const escaped = String(value).replace(/'/g, "''");
             return `-${key} '${escaped}'`;
         })
         .join(' ');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Smart default properties per common cmdlets (avoids 911 KB responses)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SMART_DEFAULTS: Record<string, string[]> = {
+    'Get-Process':    ['Id', 'ProcessName', 'CPU', 'WorkingSet64', 'Responding'],
+    'Get-Service':    ['Name', 'DisplayName', 'Status', 'StartType'],
+    'Get-Item':       ['Name', 'FullName', 'Length', 'LastWriteTime', 'Attributes'],
+    'Get-ChildItem':  ['Name', 'FullName', 'Length', 'LastWriteTime', 'Attributes'],
+    'Get-Module':     ['Name', 'Version', 'ModuleType', 'ExportedCommands'],
+    'Get-Command':    ['Name', 'CommandType', 'ModuleName', 'Version'],
+    'Get-EventLog':   ['TimeGenerated', 'EntryType', 'Source', 'EventID', 'Message'],
+    'Get-NetAdapter': ['Name', 'Status', 'LinkSpeed', 'MacAddress'],
+    'Get-Disk':       ['Number', 'FriendlyName', 'OperationalStatus', 'Size'],
+    'Get-Volume':     ['DriveLetter', 'FileSystemLabel', 'FileSystem', 'Size', 'SizeRemaining'],
+};
+
+/**
+ * Build a Select-Object clause, or empty string if no selection needed.
+ */
+function buildSelectClause(
+    cmdletName: string,
+    selectProperties?: string[]
+): string {
+    // Explicit selection always wins
+    if (selectProperties && selectProperties.length > 0) {
+        const props = selectProperties.map(p => `'${p.replace(/'/g, "''")}'`).join(',');
+        return `| Select-Object ${props}`;
+    }
+
+    // Smart default for known cmdlets
+    const baseName = cmdletName.split(' ')[0]; // strip any aliases
+    const defaults = SMART_DEFAULTS[baseName];
+    if (defaults) {
+        const props = defaults.map(p => `'${p}'`).join(',');
+        return `| Select-Object ${props}`;
+    }
+
+    return '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main function
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Execute a single PowerShell cmdlet with named parameters.
  *
- * @param cmdletName Name of the cmdlet (e.g. "Get-Process", "Set-Content")
- * @param parameters Key/value map of parameter names → values
+ * @param cmdletName       Cmdlet name (e.g. "Get-Process")
+ * @param parameters       Key/value map of parameter names → values
  * @param workingDirectory Optional working directory
+ * @param selectProperties Return only these properties (saves tokens). If omitted,
+ *                         smart defaults apply for common cmdlets.
+ * @param depth            JSON serialisation depth (default 2). Increase only when
+ *                         you need nested objects — higher values = more tokens.
+ * @param first            Limit result to first N items (default 50).
  */
 export async function invokeCmdlet(
     cmdletName: string,
     parameters: Record<string, unknown> = {},
-    workingDirectory?: string
+    workingDirectory?: string,
+    selectProperties?: string[],
+    depth: number = 2,
+    first: number = 50
 ): Promise<CmdletResult> {
-    // Basic validation — cmdlet name must match Verb-Noun or be a simple identifier
+    // Input validation — cmdlet name must be a safe identifier
     if (!/^[\w-]+$/.test(cmdletName)) {
         return {
             success: false,
             result: null,
-            error: `Invalid cmdlet name: "${cmdletName}". Only alphanumeric characters and hyphens are allowed.`,
+            error: `Invalid cmdlet name: "${cmdletName}". Only alphanumeric chars and hyphens allowed.`,
         };
     }
 
-    const paramString = buildParamString(parameters);
-    const cmdline = `${cmdletName}${paramString ? ' ' + paramString : ''}`;
+    const paramString   = buildParamString(parameters);
+    const selectClause  = buildSelectClause(cmdletName, selectProperties);
+    const firstClause   = `| Select-Object -First ${first}`;
+    const cmdline       = `${cmdletName}${paramString ? ' ' + paramString : ''}`;
 
-    const script = `
-$__cmd_result = ${cmdline}
-$__cmd_result
-`;
+    const script = [
+        `$__result = ${cmdline}`,
+        `$__count  = if ($__result -is [System.Collections.IEnumerable] -and $__result -isnot [string]) { @($__result).Count } else { 1 }`,
+        `@{`,
+        `    result = $__result ${selectClause} ${firstClause}`,
+        `    count  = $__count`,
+        `}`,
+    ].join('\n');
 
     try {
-        const result = await runPowerShellJson<unknown>(script, workingDirectory);
+        const data = await runPowerShellJson<{ result: unknown; count: number }>(
+            script,
+            workingDirectory,
+            30_000,
+            depth
+        );
+
+        if (!data) {
+            return { success: true, result: null, count: 0 };
+        }
 
         return {
             success: true,
-            result: result ?? null,
+            result:  data.result,
+            count:   data.count,
         };
     } catch (error) {
         return {
@@ -91,24 +151,24 @@ $__cmd_result
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// getCmdletParameters helper
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Get the list of parameters for a cmdlet (for MCP tool discovery)
+ * Get the list of parameters for a cmdlet (compact, AI-friendly).
  */
 export async function getCmdletParameters(cmdletName: string): Promise<{
     name: string;
     type: string;
     mandatory: boolean;
-    description: string;
 }[]> {
-    if (!/^[\w-]+$/.test(cmdletName)) {
-        return [];
-    }
+    if (!/^[\w-]+$/.test(cmdletName)) { return []; }
 
     const selectProps = [
         "@{N='name';E={$_.Name}}",
         "@{N='type';E={$_.ParameterType.Name}}",
         "@{N='mandatory';E={($_.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] } | Select-Object -First 1).Mandatory -eq $true}}",
-        "@{N='description';E={$help = Get-Help '" + cmdletName + "' -Parameter $_.Name -ErrorAction SilentlyContinue; if ($help) { $help.Description.Text } else { '' }}}",
     ].join(',');
 
     const script = [
@@ -120,6 +180,8 @@ export async function getCmdletParameters(cmdletName: string): Promise<{
         '}',
     ].join('\n');
 
-    const result = await runPowerShellJson<{ name: string; type: string; mandatory: boolean; description: string }[]>(script);
+    const result = await runPowerShellJson<{ name: string; type: string; mandatory: boolean }[]>(
+        script, undefined, 15_000, 2
+    );
     return result ?? [];
 }

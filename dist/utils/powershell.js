@@ -14,6 +14,7 @@ const os_1 = require("os");
 const fs_1 = require("fs");
 const os_2 = require("os");
 const path_1 = require("path");
+const tokenOptimizer_1 = require("./tokenOptimizer");
 /** Cached PS executable path */
 let _psExecutable = null;
 /**
@@ -94,8 +95,8 @@ async function runPowerShell(code, workingDirectory, timeout = 30_000) {
             clearTimeout(timeoutId);
             resolve({
                 success: exitCode === 0,
-                output: stdout.trim(),
-                error: stderr.trim(),
+                output: (0, tokenOptimizer_1.stripAnsi)(stdout).trim(),
+                error: (0, tokenOptimizer_1.stripAnsi)(stderr).trim(),
                 exitCode,
             });
         });
@@ -117,10 +118,12 @@ async function runPowerShell(code, workingDirectory, timeout = 30_000) {
  * Execute PowerShell via a temporary script file to avoid -Command length limits
  * and pipeline conflicts when the code itself contains pipelines.
  *
- * The result must be JSON-serialisable; wrap the code so the last expression
- * is converted with ConvertTo-Json.
+ * @param code             PowerShell code whose last expression is JSON-serialised
+ * @param workingDirectory Optional working directory
+ * @param timeout          Timeout in milliseconds
+ * @param depth            ConvertTo-Json depth (default 3 — keeps output compact)
  */
-async function runPowerShellJson(code, workingDirectory, timeout = 30_000) {
+async function runPowerShellJson(code, workingDirectory, timeout = 30_000, depth = 3) {
     // Write code to a temp file so we avoid -Command length limits
     // and double-pipe issues when the callee code already has pipelines.
     const tmpFile = (0, path_1.join)((0, os_2.tmpdir)(), `psex_${Date.now()}_${Math.random().toString(36).slice(2)}.ps1`);
@@ -130,7 +133,7 @@ $ErrorActionPreference = 'Stop'
 $__psex_result = & {
 ${code}
 }
-$__psex_result | ConvertTo-Json -Depth 10 -Compress
+$__psex_result | ConvertTo-Json -Depth ${depth} -Compress
 `;
     try {
         (0, fs_1.writeFileSync)(tmpFile, wrappedCode, 'utf8');
@@ -157,7 +160,7 @@ $__psex_result | ConvertTo-Json -Depth 10 -Compress
                     return;
                 }
                 clearTimeout(timeoutId);
-                resolve({ success: code === 0, output: stdout.trim(), error: stderr.trim(), exitCode: code });
+                resolve({ success: code === 0, output: (0, tokenOptimizer_1.stripAnsi)(stdout).trim(), error: (0, tokenOptimizer_1.stripAnsi)(stderr).trim(), exitCode: code });
             });
             child.on('error', (err) => {
                 if (timedOut) {
