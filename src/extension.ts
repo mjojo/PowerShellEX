@@ -1,18 +1,19 @@
 /**
  * PowerShell EX - VS Code Extension
- * 
+ *
  * Advanced PowerShell language support for VS Code / Antigravity
- * 
- * @author (mjojo) 
+ *
+ * @author (mjojo)
  * @license MIT
  * @copyright 2024-2026 Vitaly Golik
  */
 
 import * as vscode from 'vscode';
 import { executePowerShell } from './tools/executeScript';
-import { analyzeScript } from './tools/analyzeScript';
-import { getCompletions } from './tools/getCompletion';
-import { getHelp } from './tools/getHelp';
+import { analyzeScript }    from './tools/analyzeScript';
+import { getCompletions }   from './tools/getCompletion';
+import { getHelp }          from './tools/getHelp';
+import { resetPowerShellExecutableCache } from './utils/powershell';
 
 let outputChannel: vscode.OutputChannel;
 let diagnosticCollection: vscode.DiagnosticCollection;
@@ -65,6 +66,15 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
     );
+
+    // Reset PS executable cache when settings change (user may install pwsh)
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration('powershell-ex.powerShellPath')) {
+                resetPowerShellExecutableCache();
+            }
+        })
+    );
 }
 
 export function deactivate() {
@@ -79,7 +89,7 @@ export function deactivate() {
 
 async function runSelection() {
     const editor = vscode.window.activeTextEditor;
-    if (!editor) return;
+    if (!editor) { return; }
 
     const selection = editor.selection;
     const text = selection.isEmpty
@@ -91,9 +101,10 @@ async function runSelection() {
 
 async function runFile() {
     const editor = vscode.window.activeTextEditor;
-    if (!editor) return;
+    if (!editor) { return; }
 
-    const filePath = editor.document.fileName;
+    // Escape single quotes in path
+    const filePath = editor.document.fileName.replace(/'/g, "''");
     await runInTerminal(`& '${filePath}'`);
 }
 
@@ -103,7 +114,7 @@ async function runInTerminal(code: string) {
         const psPath = config.get<string>('powerShellPath') || 'pwsh';
         terminal = vscode.window.createTerminal({
             name: 'PowerShell EX',
-            shellPath: psPath
+            shellPath: psPath,
         });
     }
     terminal.show();
@@ -217,8 +228,9 @@ class PowerShellHoverProvider implements vscode.HoverProvider {
 
         const word = document.getText(wordRange);
 
-        // Check if it looks like a cmdlet (Verb-Noun pattern)
-        if (!/^[A-Z][a-z]+-[A-Z][a-z]+/.test(word)) {
+        // Match Verb-Noun cmdlet pattern — supports all-caps segments:
+        // Get-Item, Set-AzVM, Get-ADUser, Test-WSMan, New-PSSession, etc.
+        if (!/^[A-Z][A-Za-z]+-[A-Z][A-Za-z]+/.test(word)) {
             return null;
         }
 

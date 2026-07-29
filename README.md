@@ -2,9 +2,10 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![PowerShell](https://img.shields.io/badge/PowerShell-7.0+-5391FE.svg?logo=powershell&logoColor=white)
+![CI](https://img.shields.io/github/actions/workflow/status/powershell-ex/powershell-ex/build.yml?label=CI)
 
 🚀 **The most powerful PowerShell integration for AI-driven development**
 
@@ -56,12 +57,12 @@
 
 | Tool | Description |
 |------|-------------|
-| `execute_powershell` | Run PowerShell code with full stdout/stderr capture |
-| `analyze_script` | Lint and analyze code with PSScriptAnalyzer |
+| `execute_powershell` | Run PowerShell code with full stdout/stderr capture + configurable timeout |
+| `analyze_script` | Lint and analyze code with PSScriptAnalyzer (severity filter support) |
 | `get_completions` | IntelliSense via native TabExpansion2 |
-| `get_help` | Get-Help integration for instant documentation |
-| `invoke_cmdlet` | Execute single cmdlets with structured parameters |
-| `list_modules` | Browse and search installed modules |
+| `get_help` | Get-Help integration for instant documentation (examples, detailed) |
+| `invoke_cmdlet` | Execute single cmdlets with structured typed parameters (safe, no injection) |
+| `list_modules` | Browse and search installed/available modules |
 
 ### VS Code Integration
 
@@ -109,8 +110,8 @@ Add to your Antigravity MCP settings (`.antigravity/mcp.json`):
 ## 📋 Requirements
 
 - **Node.js** 18+ (LTS recommended)
-- **PowerShell** 7+ (pwsh) or Windows PowerShell 5.1
-- **PSScriptAnalyzer** module (optional, for code analysis)
+- **PowerShell** 7+ (`pwsh`) — auto-detected; falls back to Windows PowerShell 5.1
+- **PSScriptAnalyzer** module (optional, for `analyze_script` tool)
 
 ```powershell
 # Install PSScriptAnalyzer
@@ -132,9 +133,15 @@ npm test         # Run test suite
 
 ## 🗺️ Roadmap
 
-- [ ] Debugging support (breakpoints, stepping)
+- [x] MCP server with AI agent tools
+- [x] PSScriptAnalyzer integration (temp-file approach, no injection)
+- [x] Configurable execution timeout
+- [x] PowerShell 7 / Windows PowerShell auto-detection
+- [x] GitHub Actions CI with automatic VSIX packaging
+- [ ] PowerShell Session Manager (persistent process, stateful sessions)
+- [ ] Debugging support (breakpoints, stepping via DAP)
 - [ ] Remote PowerShell sessions (SSH, WinRM)
-- [ ] PowerShell notebook support
+- [ ] PowerShell Notebook support (.psnb)
 - [ ] Custom PSScriptAnalyzer rule editor
 - [ ] Performance profiler integration
 
