@@ -1,4 +1,4 @@
-# PowerShell EX — Advanced PowerShell for Antigravity IDE
+# PowerShell EX — Advanced PowerShell for VS Code & Antigravity IDE
 
 <div align="center">
 
@@ -7,7 +7,7 @@
 ![PowerShell](https://img.shields.io/badge/PowerShell-7.0+-5391FE.svg?logo=powershell&logoColor=white)
 ![CI](https://img.shields.io/github/actions/workflow/status/mjojo/PowerShellEX/build.yml?label=CI)
 
-🚀 **The most powerful PowerShell integration for AI-driven development**
+🚀 **The most powerful PowerShell integration for VS Code and AI-driven development**
 
 *Created by [Vitaly Golik (mjojo)](mailto:vitaly.golik@gmail.com)*
 
@@ -121,8 +121,16 @@ code --install-extension powershell-ex-1.2.0.vsix
 
 ---
 
-## 🔧 Usage with Antigravity
+## 🔧 Usage
 
+### In VS Code
+PowerShell EX works out-of-the-box as a standard VS Code extension:
+- **Execute Code:** Select code and press `F8` to run it in the terminal.
+- **Get Help:** Place cursor on a cmdlet and press `Ctrl+F1` for instant documentation.
+- **Diagnostics:** PSScriptAnalyzer provides real-time feedback on file save.
+- **Hover Docs:** Hover over cmdlets for syntax and synopsis.
+
+### In Antigravity (AI Agents)
 Add to your Antigravity MCP settings (`.gemini/antigravity-ide/mcp_config.json`):
 
 ```json
